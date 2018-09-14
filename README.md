@@ -13,17 +13,17 @@ Develop an application that provides a list of items within a variety of categor
 - Clone or download this repo to the vagrant folder
 - In a terminal type 
     ```
-		vagrant up
-        vagrant ssh
+	vagrant up
+    vagrant ssh
     ```
 - Run the following to setup the db
     ```
-		python init_db.py
-        python load_db.py
+	python init_db.py
+    python load_db.py
     ```
 - Run the following to start the project
     ```
-		python project.py
+	python project.py
     ```
 - Open your web browser to http://locallhost:5000
 - Click the login button to login via Google.
@@ -35,10 +35,9 @@ Develop an application that provides a list of items within a variety of categor
 - Third party authentication and authorization through Google Accounts.
 - Formatted with PEP8 style.
 
-## JSON Endpoints
-- The json endpoints are:
-http://localhost:5000/author/JSON
-http://localhost:5000/author/<author_id>/booklist/JSON
-http://localhost:5000/author/<author_id>/booklist/<book_id>/JSON
+# JSON Endpoints:
+	(1) http://localhost:5000/author/JSON
+	(2) http://localhost:5000/author/<author_id>/booklist/JSON
+	(3) http://localhost:5000/author/<author_id>/booklist/<book_id>/JSON
 
 
