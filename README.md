@@ -1,6 +1,9 @@
-## Item Catelog Web App for Item-Catelog in the Udacity Full-Stack Nano-degree
+# Udacity Full-Stack Nanodegree
 
-- This web app is for Creating and Maintaining a list of authors and their books.
+## Project 2 - Item Catalog
+
+## Project Purpose
+Develop an application that provides a list of items within a variety of categories as well as provided a user registration and authentication system.
 
 # Setup
 - Download and install Vagrant.
@@ -9,15 +12,18 @@
 - Navigate to the above directory and navigate to the vagrant/ sub-directory
 - Clone or download this repo to the vagrant folder
 - In a terminal type 
-    ```vagrant up
+    ```
+		vagrant up
         vagrant ssh
     ```
 - Run the following to setup the db
-    ```python init_db.py
-       python load_db.py
+    ```
+		python init_db.py
+        python load_db.py
     ```
 - Run the following to start the project
-    ```python project.py
+    ```
+		python project.py
     ```
 - Open your web browser to http://locallhost:5000
 - Click the login button to login via Google.
@@ -28,3 +34,11 @@
 - Implements JSON endpoints.
 - Third party authentication and authorization through Google Accounts.
 - Formatted with PEP8 style.
+
+## JSON Endpoints
+- The json endpoints are:
+http://localhost:5000/author/JSON
+http://localhost:5000/author/<author_id>/booklist/JSON
+http://localhost:5000/author/<author_id>/booklist/<book_id>/JSON
+
+
