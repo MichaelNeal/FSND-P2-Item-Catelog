@@ -1,4 +1,12 @@
-from flask import Flask, render_template, request, redirect, jsonify, url_for
+from flask import (
+    Flask,
+    flash,
+    render_template,
+    request,
+    redirect,
+    jsonify,
+    url_for
+    )
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from init_db import Base, Author, Book, User
@@ -65,6 +73,10 @@ def editAuthor(author_id):
         return redirect('/login')
     editedAuthor = session.query(
         Author).filter_by(id=author_id).one()
+    if editedAuthor.user_id != login_session['email']:
+        flash("""You are not authorized to edit this author. Please create
+              a new author.""")
+        return redirect(url_for('newAuthor'))
     if request.method == 'POST':
         if request.form['name']:
             editedAuthor.name = request.form['name']
@@ -84,6 +96,11 @@ def deleteAuthor(author_id):
         return redirect('/login')
     authorToDelete = session.query(
         Author).filter_by(id=author_id).one()
+    if authorToDelete.user_id != login_session['email']:
+        return """<script>function myFunction() {alert('You are not authorized
+               to delete this author.');
+               window.location.href='http://localhost:5000/author/';}</script>
+               <body onload='myFunction()'>"""
     if request.method == 'POST':
         session.delete(authorToDelete)
         session.commit()
@@ -148,6 +165,12 @@ def editBook(author_id, book_id):
     if 'username' not in login_session:
         return redirect('/login')
     editedBook = session.query(Book).filter_by(id=book_id).one()
+    if editedBook.user_id != login_session['email']:
+        return """<script>function myFunction() {alert('You are not authorized
+               to edit books for this author. Please create a new author to
+               add/edit items.');
+               window.location.href='http://localhost:5000/author/';}</script>
+               <body onload='myFunction()'>"""
     if request.method == 'POST':
         if request.form['title']:
             editedBook.title = request.form['title']
@@ -172,6 +195,11 @@ def deleteBook(author_id, book_id):
     if 'username' not in login_session:
         return redirect('/login')
     bookToDelete = session.query(Book).filter_by(id=book_id).one()
+    if bookToDelete.user_id != login_session['email']:
+        return """<script>function myFunction() {alert('You are not authorized
+               to delete books for this author. Please create your own author
+               in order to delete books.');}</script><body
+               onload='myFunction()'>"""
     if request.method == 'POST':
         session.delete(bookToDelete)
         session.commit()
@@ -211,7 +239,8 @@ def gdisconnect():
     print 'In gdisconnect access token is %s', access_token
     print 'User name is: '
     print login_session['username']
-    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s'
+#    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s'
+    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
     login_session['access_token']
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
@@ -221,14 +250,14 @@ def gdisconnect():
         del login_session['access_token']
         del login_session['gplus_id']
         del login_session['username']
-#        del login_session['email']
+        del login_session['email']
         del login_session['picture']
         response = make_response(json.dumps('Successfully disconnected.'), 200)
         response.headers['Content-Type'] = 'application/json'
         return response
     else:
         response = make_response(json.dumps(
-            'Failed to revoke token for given user.', 400))
+            'Failed to revoke token for given user.'), 400)
         response.headers['Content-Type'] = 'application/json'
     return response
 
@@ -303,7 +332,13 @@ def gconnect():
 
     login_session['username'] = data['name']
     login_session['picture'] = data['picture']
-#    login_session['email'] = data['email']
+    login_session['email'] = data['id']
+
+    # test if user is in db if not create one
+    user_id = getUserID(data["id"])
+    if not user_id:
+        user_id = createUser(login_session)
+    login_session['user_id'] = user_id
 
     output = ''
     output += '<h1>Welcome, '
@@ -330,23 +365,23 @@ def createUser(login_session):
     newUser = User(name=login_session['username'],
                    email=login_session['email'],
                    picture=login_session['picture'])
-    sesion.add(newUser)
+    session.add(newUser)
     session.commit()
-    user = session.query(User).filter_by(email=login_session['email']).one()
-    return user.id
-
-
-def getUserInfo(user_id):
-    user = session.query(User).filter_by(id=user.id).one()
+    user = session.query(User).filter_by(id=login_session['email']).first()
     return user
 
 
-def getUserId(email):
+def getUserInfo(user_id):
+    user = session.query(User).filter_by(id=user_id).one()
+    return user
+
+
+def getUserID(email):
     try:
         user = session.query(User).filter_by(email=email).one()
         return user.id
     except TypeError as e:
-        print(e)
+        print e
         return None
 
 

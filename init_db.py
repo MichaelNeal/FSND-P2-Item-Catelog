@@ -22,8 +22,9 @@ class Author(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship(User)
+    user_id = Column(String(250), ForeignKey('user.id'))
+    user = relationship('User')
+    book = relationship('Book', cascade='all, delete-orphan')
 
     @property
     def serialize(self):
@@ -42,8 +43,8 @@ class Book(Base):
     description = Column(String(250))
     author_id = Column(Integer, ForeignKey('author.id'))
     author = relationship(Author)
-    user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship(User)
+    user_id = Column(String(250), ForeignKey('user.id'))
+    user = relationship('User')
 
     @property
     def serialize(self):
