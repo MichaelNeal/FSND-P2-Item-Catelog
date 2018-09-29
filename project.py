@@ -7,7 +7,10 @@ from flask import (
     jsonify,
     url_for
     )
-from sqlalchemy import create_engine
+from sqlalchemy import (
+    create_engine,
+    exc
+    )
 from sqlalchemy.orm import sessionmaker
 from init_db import Base, Author, Book, User
 
@@ -21,6 +24,7 @@ import httplib2
 import json
 from flask import make_response
 import requests
+from functools import wraps
 
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
@@ -34,16 +38,23 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in login_session:
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 # -----------------------------------------------------------------------------
 # --Author Section ------------------------------------------------------------
 # -----------------------------------------------------------------------------
-
 # -- CREATE -------------------------------------------------------------------
 # Create a new author
 @app.route('/author/new/', methods=['GET', 'POST'])
+@login_required
 def newAuthor():
-    if 'username' not in login_session:
-        return redirect('/login')
     if request.method == 'POST':
         newAuthor = Author(name=request.form['name'],
                            user_id=login_session['gplus_id'])
@@ -68,9 +79,8 @@ def showAuthors():
 # -- UPDATE -------------------------------------------------------------------
 # Edit Author
 @app.route('/author/<int:author_id>/edit/', methods=['GET', 'POST'])
+@login_required
 def editAuthor(author_id):
-    if 'username' not in login_session:
-        return redirect('/login')
     editedAuthor = session.query(
         Author).filter_by(id=author_id).one()
     if editedAuthor.user_id != login_session['email']:
@@ -91,9 +101,8 @@ def editAuthor(author_id):
 # -- DESTROY ------------------------------------------------------------------
 # Delete Author
 @app.route('/author/<int:author_id>/delete/', methods=['GET', 'POST'])
+@login_required
 def deleteAuthor(author_id):
-    if 'username' not in login_session:
-        return redirect('/login')
     authorToDelete = session.query(
         Author).filter_by(id=author_id).one()
     if authorToDelete.user_id != login_session['email']:
@@ -127,9 +136,8 @@ def authorsJSON():
 # Create a new book
 @app.route(
     '/author/<int:author_id>/book/new/', methods=['GET', 'POST'])
+@login_required
 def newBook(author_id):
-    if 'username' not in login_session:
-        return redirect('/login')
     if request.method == 'POST':
         newBook = Book(title=request.form['title'], description=request.form[
                        'description'], author_id=author_id,
@@ -161,9 +169,8 @@ def showBookList(author_id):
 # Edit book
 @app.route('/author/<int:author_id>/book/<int:book_id>/edit',
            methods=['GET', 'POST'])
+@login_required
 def editBook(author_id, book_id):
-    if 'username' not in login_session:
-        return redirect('/login')
     editedBook = session.query(Book).filter_by(id=book_id).one()
     if editedBook.user_id != login_session['email']:
         return """<script>function myFunction() {alert('You are not authorized
@@ -191,9 +198,8 @@ def editBook(author_id, book_id):
 # Delete book
 @app.route('/author/<int:author_id>/book/<int:book_id>/delete',
            methods=['GET', 'POST'])
+@login_required
 def deleteBook(author_id, book_id):
-    if 'username' not in login_session:
-        return redirect('/login')
     bookToDelete = session.query(Book).filter_by(id=book_id).one()
     if bookToDelete.user_id != login_session['email']:
         return """<script>function myFunction() {alert('You are not authorized
@@ -226,7 +232,6 @@ def bookJSON(author_id, book_id):
 # -----------------------------------------------------------------------------
 # --Authentication Section ----------------------------------------------------
 # -----------------------------------------------------------------------------
-
 @app.route('/gdisconnect', methods=['POST', 'GET'])
 def gdisconnect():
     access_token = login_session.get('access_token')
@@ -239,7 +244,6 @@ def gdisconnect():
     print 'In gdisconnect access token is %s', access_token
     print 'User name is: '
     print login_session['username']
-#    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s'
     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
     login_session['access_token']
     h = httplib2.Http()
@@ -372,16 +376,20 @@ def createUser(login_session):
 
 
 def getUserInfo(user_id):
-    user = session.query(User).filter_by(id=user_id).one()
-    return user
+    try:
+        user = session.query(User).filter_by(id=user_id).one()
+        return user
+    except exc.SQLAlchemyError as e:
+        print "Unable to getUserInfo: ", str(e)
+        return None
 
 
 def getUserID(email):
     try:
         user = session.query(User).filter_by(email=email).one()
         return user.id
-    except TypeError as e:
-        print e
+    except exc.SQLAlchemyError as e:
+        print "Unable to getUserID: ", str(e)
         return None
 
 
